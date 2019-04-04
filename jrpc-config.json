@@ -1,0 +1,38 @@
+{
+  "server_port": 8080,
+  "url_prefix": "v1",
+  "handlers": [
+    {
+      "method": "getAllProducts",
+      "result": [
+
+        {
+          "discriminator": "success",
+          "is_error": false,
+          "data": [
+            {
+              "id": 1,
+              "name": "Cheese",
+              "price": 100
+            },
+            {
+              "id": 3,
+              "name": "Butter",
+              "price": 200.20
+            }
+          ]
+        },
+
+        {
+          "discriminator": "error",
+          "is_error": false,
+          "data": {
+            "code": 500,
+            "error": "Database error"
+          }
+        }
+
+      ]
+    }
+  ]
+}
