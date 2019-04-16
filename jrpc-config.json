@@ -1,11 +1,11 @@
 {
   "server_port": 8080,
   "url_prefix": "v1",
+  "discriminator_header": "JSON_RPC_MOCK",
   "handlers": [
     {
       "method": "getAllProducts",
       "result": [
-
         {
           "discriminator": "success",
           "is_error": false,
@@ -22,7 +22,6 @@
             }
           ]
         },
-
         {
           "discriminator": "error",
           "is_error": false,
@@ -31,7 +30,6 @@
             "error": "Database error"
           }
         }
-
       ]
     }
   ]

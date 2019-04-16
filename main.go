@@ -21,9 +21,10 @@ type Handler struct {
 }
 
 type Config struct {
-	ServerPort uint      `json:"server_port"`
-	UrlPrefix  string    `json:"url_prefix"`
-	Handlers   []Handler `json:"handlers"`
+	ServerPort          uint      `json:"server_port"`
+	UrlPrefix           string    `json:"url_prefix"`
+	DiscriminatorHeader string    `json:"discriminator_header"`
+	Handlers            []Handler `json:"handlers"`
 }
 
 func (c *Config) Parse(configPath string) {
@@ -85,7 +86,7 @@ func main() {
 			})
 		}
 
-		discriminator := c.Request().Header.Get("JSON_RPC_MOCK")
+		discriminator := c.Request().Header.Get(config.DiscriminatorHeader)
 		if discriminator == "" {
 			discriminator = "success"
 		}
