@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/labstack/echo"
 	"github.com/sirupsen/logrus"
+	"github.com/xeipuuv/gojsonschema"
 	"io/ioutil"
 )
 
@@ -19,6 +20,120 @@ type Handler struct {
 	Method string          `json:"method"`
 	Result []HandlerParams `json:"result"`
 }
+
+var configSchema string = `
+{
+  "definitions": {},
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "http://example.com/root.json",
+  "type": "object",
+  "title": "The Root Schema",
+  "required": [
+    "server_port",
+    "url_prefix",
+    "discriminator_header",
+    "handlers"
+  ],
+  "properties": {
+    "server_port": {
+      "$id": "#/properties/server_port",
+      "type": "integer",
+      "title": "Server port",
+      "default": 0,
+      "examples": [
+        8080
+      ]
+    },
+    "url_prefix": {
+      "$id": "#/properties/url_prefix",
+      "type": "string",
+      "title": "URL prefix",
+      "default": "",
+      "examples": [
+        "v1"
+      ],
+      "pattern": "^(.*)$"
+    },
+    "discriminator_header": {
+      "$id": "#/properties/discriminator_header",
+      "type": "string",
+      "title": "Discriminator HEADER",
+      "default": "",
+      "examples": [
+        "JSON_RPC_MOCK"
+      ],
+      "pattern": "^(.*)$"
+    },
+    "handlers": {
+      "$id": "#/properties/handlers",
+      "type": "array",
+      "title": "The Handlers Schema",
+      "items": {
+        "$id": "#/properties/handlers/items",
+        "type": "object",
+        "title": "The Items Schema",
+        "required": [
+          "method",
+          "result"
+        ],
+        "properties": {
+          "method": {
+            "$id": "#/properties/handlers/items/properties/method",
+            "type": "string",
+            "title": "The Method Schema",
+            "default": "",
+            "examples": [
+              "getAllProducts"
+            ],
+            "pattern": "^(.*)$"
+          },
+          "result": {
+            "$id": "#/properties/handlers/items/properties/result",
+            "type": "array",
+            "title": "The Result Schema",
+            "items": {
+              "$id": "#/properties/handlers/items/properties/result/items",
+              "type": "object",
+              "title": "The Items Schema",
+              "required": [
+                "discriminator",
+                "is_error",
+                "data"
+              ],
+              "properties": {
+                "discriminator": {
+                  "$id": "#/properties/handlers/items/properties/result/items/properties/discriminator",
+                  "type": "string",
+                  "title": "The Discriminator Schema",
+                  "default": "",
+                  "examples": [
+                    "success"
+                  ],
+                  "pattern": "^(.*)$"
+                },
+                "is_error": {
+                  "$id": "#/properties/handlers/items/properties/result/items/properties/is_error",
+                  "type": "boolean",
+                  "title": "The Is_error Schema",
+                  "default": false,
+                  "examples": [
+                    false
+                  ]
+                },
+                "data": {
+                  "$id": "#/properties/handlers/items/properties/result/items/properties/data",
+                  "title": "The Data Schema",
+                  "default": null
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+`
 
 type Config struct {
 	ServerPort          uint      `json:"server_port"`
@@ -36,6 +151,25 @@ func (c *Config) Parse(configPath string) {
 	err = json.Unmarshal(configFile, c)
 	if err != nil {
 		logrus.Fatal("Config parse error: ", err)
+	}
+}
+
+func (c *Config) Validate(configPath string) {
+	configLoader := gojsonschema.NewReferenceLoader(fmt.Sprintf("file://%s", configPath))
+	schemaLoader := gojsonschema.NewStringLoader(configSchema)
+
+	validationResult, err := gojsonschema.Validate(schemaLoader, configLoader)
+	if err != nil {
+		logrus.Fatal("Config validation error: ", err)
+	}
+
+	if !validationResult.Valid() {
+		fmt.Printf("Config is not valid. see errors :\n")
+		for _, desc := range validationResult.Errors() {
+			fmt.Printf("- %s\n", desc)
+		}
+
+		logrus.Fatal("Config validation error")
 	}
 }
 
@@ -69,6 +203,7 @@ func main() {
 	}
 
 	config := NewConfig()
+	config.Validate(*configPath)
 	config.Parse(*configPath)
 
 	e := echo.New()

@@ -24,7 +24,7 @@
         },
         {
           "discriminator": "error",
-          "is_error": false,
+          "is_error": true,
           "data": {
             "code": 500,
             "error": "Database error"
